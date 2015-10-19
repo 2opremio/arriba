@@ -15,7 +15,7 @@ Go to `https://<yourteam>.slack.com/services/new/bot`
 
 ![New bot](img/newbot.png)
 
-Click on *Create bot integration*
+Click on *Add bot integration*
 
 ![Bot token](img/bottoken.png)
 
