@@ -15,7 +15,7 @@ Go to `https://<yourteam>.slack.com/services/new/bot`
 
 ![New bot](img/newbot.png)
 
-Click on *Add bot integration*
+Click on *Add Bot Integration*
 
 ![Bot token](img/bottoken.png)
 
@@ -42,5 +42,4 @@ docker run 2opremio/arriba xoxb-12803307735-NIlz3RAH1kBf0ir47oYhGejr
 
 ### 3. Talk to him!
 
-Arriba should now be connected to your Slack team. Just invite him to channels
-and use it as in the example above.
+Arriba should now be connected to your Slack team. Just invite him to the Slack channel(s) where you want to carry out standups and talk to him as in the example above.
