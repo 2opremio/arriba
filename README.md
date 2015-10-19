@@ -7,7 +7,7 @@ Arriba! (Up! in Spanish) keeps track of your
 ![Stand-up example with Arriba](img/screenshot.png)
 
 
-## Using arriba
+## Using Arriba
 
 ### 1. Get a Slack bot token
 
@@ -22,7 +22,7 @@ Click on *Create bot integration*
 The bot token is `xoxb-12803307735-NIlz3RAH1kBf0ir47oYhGejr` in the example above.
 
 
-### 2. Run arriba
+### 2. Run Arriba
 
 You have two options
 
