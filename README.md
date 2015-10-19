@@ -1,4 +1,4 @@
-# Arriba! - An asynchronous stand-up bot for Slack
+# Arriba! - A Slack bot for asynchronous stand-ups
 
 Arriba! (Up! in Spanish) keeps track of your
 [stand-up](https://en.wikipedia.org/wiki/Stand-up_meeting) messages in
