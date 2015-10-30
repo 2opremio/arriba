@@ -159,7 +159,7 @@ func (a arriba) getUserName(userID string) string {
 	info, err := a.rtm.GetUserInfo(userID)
 	userName := "id" + userID
 	if err != nil {
-		logrus.Errorf("Couldn't get user iformation for user %s: %s", userID, err)
+		logrus.Errorf("Couldn't get user information for user %s: %s", userID, err)
 	} else {
 		userName = info.Name
 	}
