@@ -57,13 +57,30 @@ func (cs channelStandup) getKeysByTimestamp() []string {
 // standups contains the channelStandup of all Slack channels known to the bot.
 type standups map[string]channelStandup
 
-// channel provides a generic way to access the IDs, Names and history of both
+// conversation is a generic way to access the IDs, Names and history of both
 // slack.Channel and slack.Group. Unfortunately nlopes/slack doesn't expose the
 // underlying common type (groupConversation) and we cannot define methods for
 // non-local types, which would allow to make things much cleaner ...
-type channel struct {
-	id, name   string
-	getHistory func(*slack.RTM, slack.HistoryParameters) (*slack.History, error)
+type conversation interface {
+	getID() string
+	getName() string
+	getHistory(*slack.RTM, slack.HistoryParameters) (*slack.History, error)
+}
+
+type channel slack.Channel
+
+func (c channel) getID() string   { return c.ID }
+func (c channel) getName() string { return c.Name }
+func (c channel) getHistory(rtm *slack.RTM, params slack.HistoryParameters) (*slack.History, error) {
+	return rtm.GetChannelHistory(c.getID(), params)
+}
+
+type group slack.Group
+
+func (g group) getID() string   { return g.ID }
+func (g group) getName() string { return g.Name }
+func (g group) getHistory(rtm *slack.RTM, params slack.HistoryParameters) (*slack.History, error) {
+	return rtm.GetGroupHistory(g.getID(), params)
 }
 
 type arriba struct {
@@ -110,7 +127,7 @@ func (a arriba) extractChannelStandupMsg(msg slack.Msg) (standupMsg, bool) {
 	return standupMsg{ts, standupText}, true
 }
 
-func (a arriba) retrieveChannelStandup(c channel) (channelStandup, error) {
+func (a arriba) retrieveChannelStandup(c conversation) (channelStandup, error) {
 	params := slack.NewHistoryParameters()
 	params.Count = 1000
 	params.Oldest = fmt.Sprintf(
@@ -147,15 +164,15 @@ func (a arriba) retrieveChannelStandup(c channel) (channelStandup, error) {
 	return cstandup, nil
 }
 
-func (a arriba) retrieveStandups(channels []channel) {
-	for _, channel := range channels {
-		logrus.Infof("Retrieveing standup for channel #%s (%s)", channel.name, channel.id)
-		cstandup, err := a.retrieveChannelStandup(channel)
+func (a arriba) retrieveStandups(conversations []conversation) {
+	for _, c := range conversations {
+		logrus.Infof("Retrieveing standup for conversation #%s (%s)", c.getName(), c.getID())
+		cstandup, err := a.retrieveChannelStandup(c)
 		if err != nil {
-			logrus.Errorf("Can't retrieve channel standup for channel #%s: %s", channel.name, err)
+			logrus.Errorf("Can't retrieve channel standup for conversation #%s: %s", c.getName(), err)
 		}
-		a.standups[channel.id] = cstandup
-		logrus.Infof("Standup for channel #%s (%s) updated to %#v", channel.name, channel.id, cstandup)
+		a.standups[c.getID()] = cstandup
+		logrus.Infof("Standup for conversation #%s (%s) updated to %#v", c.getName(), c.getID(), cstandup)
 	}
 }
 
@@ -218,30 +235,16 @@ func (a *arriba) handleConnectedEvent(ev *slack.ConnectedEvent) {
 	a.extractMsgRE = regexp.MustCompile(fmt.Sprintf(extractMsgPattern, a.botID))
 
 	// Retrieve standups for public channels and private groups
-	var channels []channel
+	var conversations []conversation
 	for _, c := range ev.Info.Channels {
 		if c.IsMember {
-			channel := channel{
-				id:   c.ID,
-				name: c.Name,
-				getHistory: func(r *slack.RTM, params slack.HistoryParameters) (*slack.History, error) {
-					return r.GetChannelHistory(c.ID, params)
-				},
-			}
-			channels = append(channels, channel)
+			conversations = append(conversations, channel(c))
 		}
 	}
 	for _, g := range ev.Info.Groups {
-		channel := channel{
-			id:   g.ID,
-			name: g.Name,
-			getHistory: func(r *slack.RTM, params slack.HistoryParameters) (*slack.History, error) {
-				return r.GetGroupHistory(g.ID, params)
-			},
-		}
-		channels = append(channels, channel)
+		conversations = append(conversations, group(g))
 	}
-	a.retrieveStandups(channels)
+	a.retrieveStandups(conversations)
 }
 
 func (a arriba) handleMessageEvent(ev *slack.MessageEvent) {
