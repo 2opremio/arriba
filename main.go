@@ -57,6 +57,15 @@ func (cs channelStandup) getKeysByTimestamp() []string {
 // standups contains the channelStandup of all Slack channels known to the bot.
 type standups map[string]channelStandup
 
+// channel provides a generic way to access the IDs, Names and history of both
+// slack.Channel and slack.Group. Unfortunately nlopes/slack doesn't expose the
+// underlying common type (groupConversation) and we cannot define methods for
+// non-local types, which would allow to make things much cleaner ...
+type channel struct {
+	id, name   string
+	getHistory func(*slack.RTM, slack.HistoryParameters) (*slack.History, error)
+}
+
 type arriba struct {
 	rtm              *slack.RTM
 	botID            string
@@ -101,7 +110,7 @@ func (a arriba) extractChannelStandupMsg(msg slack.Msg) (standupMsg, bool) {
 	return standupMsg{ts, standupText}, true
 }
 
-func (a arriba) retrieveChannelStandup(channelID string) (channelStandup, error) {
+func (a arriba) retrieveChannelStandup(c channel) (channelStandup, error) {
 	params := slack.NewHistoryParameters()
 	params.Count = 1000
 	params.Oldest = fmt.Sprintf(
@@ -112,10 +121,7 @@ func (a arriba) retrieveChannelStandup(channelID string) (channelStandup, error)
 	// of traversing the whole history, but that's not allowed for bots :(
 	cstandup := make(channelStandup)
 	for {
-		history, error := a.rtm.GetChannelHistory(
-			channelID,
-			params,
-		)
+		history, error := c.getHistory(a.rtm, params)
 		if error != nil {
 			return cstandup, error
 		}
@@ -141,17 +147,15 @@ func (a arriba) retrieveChannelStandup(channelID string) (channelStandup, error)
 	return cstandup, nil
 }
 
-func (a arriba) retrieveStandups(channels []slack.Channel) {
+func (a arriba) retrieveStandups(channels []channel) {
 	for _, channel := range channels {
-		if channel.IsMember {
-			logrus.Infof("Retrieveing standup for channel #%s (%s)", channel.Name, channel.ID)
-			cstandup, err := a.retrieveChannelStandup(channel.ID)
-			if err != nil {
-				logrus.Errorf("Can't retrieve channel standup for channel #%s: %s", channel.Name, err)
-			}
-			a.standups[channel.ID] = cstandup
-			logrus.Infof("Standup for channel #%s (%s) updated to %#v", channel.Name, channel.ID, cstandup)
+		logrus.Infof("Retrieveing standup for channel #%s (%s)", channel.name, channel.id)
+		cstandup, err := a.retrieveChannelStandup(channel)
+		if err != nil {
+			logrus.Errorf("Can't retrieve channel standup for channel #%s: %s", channel.name, err)
 		}
+		a.standups[channel.id] = cstandup
+		logrus.Infof("Standup for channel #%s (%s) updated to %#v", channel.name, channel.id, cstandup)
 	}
 }
 
@@ -212,7 +216,32 @@ func (a *arriba) handleConnectedEvent(ev *slack.ConnectedEvent) {
 	a.botID = ev.Info.User.ID
 	a.botName = ev.Info.User.Name
 	a.extractMsgRE = regexp.MustCompile(fmt.Sprintf(extractMsgPattern, a.botID))
-	a.retrieveStandups(ev.Info.Channels)
+
+	// Retrieve standups for public channels and private groups
+	var channels []channel
+	for _, c := range ev.Info.Channels {
+		if c.IsMember {
+			channel := channel{
+				id:   c.ID,
+				name: c.Name,
+				getHistory: func(r *slack.RTM, params slack.HistoryParameters) (*slack.History, error) {
+					return r.GetChannelHistory(c.ID, params)
+				},
+			}
+			channels = append(channels, channel)
+		}
+	}
+	for _, g := range ev.Info.Groups {
+		channel := channel{
+			id:   g.ID,
+			name: g.Name,
+			getHistory: func(r *slack.RTM, params slack.HistoryParameters) (*slack.History, error) {
+				return r.GetGroupHistory(g.ID, params)
+			},
+		}
+		channels = append(channels, channel)
+	}
+	a.retrieveStandups(channels)
 }
 
 func (a arriba) handleMessageEvent(ev *slack.MessageEvent) {
@@ -226,7 +255,8 @@ func (a arriba) handleMessageEvent(ev *slack.MessageEvent) {
 		return
 	}
 	switch ev.Channel[0] {
-	case 'C':
+	case 'C', 'G':
+		// Public and private (group) channels
 		smsg, ok := a.extractChannelStandupMsg(ev.Msg)
 		if !ok {
 			return
@@ -240,8 +270,6 @@ func (a arriba) handleMessageEvent(ev *slack.MessageEvent) {
 
 	case 'D':
 		// Direct messages are not supported yet
-	case 'G':
-		// Group channels are not supported yet
 	}
 }
 
