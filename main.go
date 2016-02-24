@@ -132,7 +132,7 @@ func (a arriba) retrieveChannelStandup(c conversation) (channelStandup, error) {
 	params.Count = 1000
 	params.Oldest = fmt.Sprintf(
 		"%d",
-		time.Now().UTC().AddDate(-a.historyDaysLimit, 0, 0).Unix(),
+		time.Now().UTC().AddDate(0, 0, -a.historyDaysLimit).Unix(),
 	)
 	// It would be way more efficient to use slack.SearchMsgs instead
 	// of traversing the whole history, but that's not allowed for bots :(
@@ -185,6 +185,19 @@ func (a arriba) getUserName(userID string) string {
 		userName = info.Name
 	}
 	return userName
+}
+
+func (a arriba) removeOldMessages(channelID string) {
+	cstandup, ok := a.standups[channelID]
+	if !ok {
+		return
+	}
+	oldestAllowed := time.Now().UTC().AddDate(0, 0, -a.historyDaysLimit)
+	for userID, msg := range cstandup {
+		if msg.ts.Before(oldestAllowed) {
+			delete(cstandup, userID)
+		}
+	}
 }
 
 func (a arriba) prettyPrintChannelStandup(cstandup channelStandup) string {
@@ -265,6 +278,8 @@ func (a arriba) handleMessageEvent(ev *slack.MessageEvent) {
 			return
 		}
 		logrus.Infof("Received standup message in channel %s: %+v", ev.Channel, smsg)
+		// Garbage-collect old messages
+		a.removeOldMessages(ev.Msg.Channel)
 		if smsg.text == "" {
 			a.sendStatus(ev.Msg.Channel)
 		} else {
