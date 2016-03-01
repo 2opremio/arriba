@@ -130,20 +130,27 @@ func (a arriba) extractChannelStandupMsg(msg slack.Msg) (standupMsg, bool) {
 func (a arriba) retrieveChannelStandup(c conversation) (channelStandup, error) {
 	params := slack.NewHistoryParameters()
 	params.Count = 1000
-	params.Oldest = fmt.Sprintf(
-		"%d",
-		time.Now().UTC().AddDate(0, 0, -a.historyDaysLimit).Unix(),
-	)
+	now := time.Now().UTC()
+	params.Latest = fmt.Sprintf("%d", now.Unix())
+	params.Oldest = fmt.Sprintf("%d", now.AddDate(0, 0, -a.historyDaysLimit).Unix())
+
 	// It would be way more efficient to use slack.SearchMsgs instead
 	// of traversing the whole history, but that's not allowed for bots :(
 	cstandup := make(channelStandup)
 	for {
 		history, error := c.getHistory(a.rtm, params)
-		if error != nil {
+		if error != nil || history == nil || len(history.Messages) == 0 {
 			return cstandup, error
 		}
 
-		for _, msg := range history.Messages {
+		logrus.Debugf(
+			"Got history chunk (from %s to %s, latest %s) for conversation %s",
+			history.Messages[len(history.Messages)-1].Msg.Timestamp,
+			history.Messages[0].Msg.Timestamp, history.Latest, c.getID())
+
+		// Messages are increasingly ordered by time, traverse them in reverse order
+		for i, _ := range history.Messages {
+			msg := history.Messages[len(history.Messages)-1-i]
 			if _, ok := cstandup[msg.User]; ok {
 				// we already have the latest standup message for this user
 				continue
@@ -157,8 +164,8 @@ func (a arriba) retrieveChannelStandup(c conversation) (channelStandup, error) {
 		if !history.HasMore {
 			break
 		}
-		oldestMsg := history.Messages[len(history.Messages)-1]
-		params.Oldest = oldestMsg.Timestamp
+		latestMsg := history.Messages[len(history.Messages)-1]
+		params.Latest = latestMsg.Timestamp
 		params.Inclusive = false
 	}
 	return cstandup, nil
