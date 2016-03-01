@@ -213,6 +213,10 @@ func (a arriba) prettyPrintChannelStandup(cstandup channelStandup) string {
 		standupMsg := cstandup[userID]
 		humanTime := humanize.Time(standupMsg.ts)
 		userName := a.getUserName(userID)
+		// Inject zero-width unicode character in username to avoid notifying users
+		if len(userName) > 1 {
+			userName = string(userName[0]) + "\ufeff" + string(userName[1:])
+		}
 		text += fmt.Sprintf("*%s*: %s _(%s)_\n", userName, standupMsg.text, humanTime)
 	}
 	return text
