@@ -16,7 +16,7 @@ import (
 const extractMsgGroupName = "msg"
 
 // extract suffixes of Slack messages starting with @bot-name
-var extractMsgPattern string = `(?m)^\s*<@%s>:?\s*(?P<` + extractMsgGroupName + `>.*)$`
+var extractMsgPattern = `(?m)^\s*<@%s>:?\s*(?P<` + extractMsgGroupName + `>.*)$`
 
 // A standupMsg is a Slack message directed to the arriba bot (i.e. with a @botname prefix)
 type standupMsg struct {
@@ -149,7 +149,7 @@ func (a arriba) retrieveChannelStandup(c conversation) (channelStandup, error) {
 			history.Messages[0].Msg.Timestamp, history.Latest, c.getID())
 
 		// Messages are increasingly ordered by time, traverse them in reverse order
-		for i, _ := range history.Messages {
+		for i := range history.Messages {
 			msg := history.Messages[len(history.Messages)-1-i]
 			if _, ok := cstandup[msg.User]; ok {
 				// we already have the latest standup message for this user
