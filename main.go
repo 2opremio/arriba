@@ -148,9 +148,7 @@ func (a arriba) retrieveChannelStandup(c conversation) (channelStandup, error) {
 			history.Messages[len(history.Messages)-1].Msg.Timestamp,
 			history.Messages[0].Msg.Timestamp, history.Latest, c.getID())
 
-		// Messages are increasingly ordered by time, traverse them in reverse order
-		for i := range history.Messages {
-			msg := history.Messages[len(history.Messages)-1-i]
+		for _, msg := range history.Messages {
 			if _, ok := cstandup[msg.User]; ok {
 				// we already have the latest standup message for this user
 				continue
