@@ -138,6 +138,11 @@ func (a arriba) retrieveChannelStandup(c conversation) (channelStandup, error) {
 	// of traversing the whole history, but that's not allowed for bots :(
 	cstandup := make(channelStandup)
 	for {
+		logrus.Debugf(
+			"Requesting history for conversation %s with parameters %#v",
+			c.getID(),
+			params)
+
 		history, error := c.getHistory(a.rtm, params)
 		if error != nil || history == nil || len(history.Messages) == 0 {
 			return cstandup, error
