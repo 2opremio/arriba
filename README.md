@@ -29,15 +29,14 @@ You have two options
 1. Compile it yourself (you will need an installation of [Go](https://golang.org/)):
 
    ```bash
-go get github.com/2opremio/arriba
-arriba xoxb-12803307735-NIlz3RAH1kBf0ir47oYhGejr
-    ```
+   go get github.com/2opremio/arriba
+   arriba xoxb-12803307735-NIlz3RAH1kBf0ir47oYhGejr
+   ```
 
 2. Use Docker:
 
    ```bash
-docker run 2opremio/arriba xoxb-12803307735-NIlz3RAH1kBf0ir47oYhGejr
-
+   docker run 2opremio/arriba xoxb-12803307735-NIlz3RAH1kBf0ir47oYhGejr
    ```
 
 ### 3. Talk to him!
