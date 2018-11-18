@@ -8,7 +8,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/nlopes/slack"
 )
