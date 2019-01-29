@@ -8,9 +8,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/nlopes/slack"
+	"github.com/sirupsen/logrus"
 )
 
 const extractMsgGroupName = "msg"
