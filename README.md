@@ -1,4 +1,6 @@
 # Arriba! - A Slack bot for asynchronous stand-ups
+[![Docker Pulls](https://img.shields.io/docker/pulls/2opremio/arriba.svg?maxAge=604800)](https://hub.docker.com/r/2opremio/arriba/)
+[![Go Report Card](https://goreportcard.com/badge/github.com/2opremio/arriba)](https://goreportcard.com/report/github.com/2opremio/arriba)
 
 Arriba! (Up! in Spanish) keeps track of your
 [stand-up](https://en.wikipedia.org/wiki/Stand-up_meeting) messages in
